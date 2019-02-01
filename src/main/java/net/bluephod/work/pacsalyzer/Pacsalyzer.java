@@ -56,7 +56,7 @@ public class Pacsalyzer {
 			}
 		}
 
-		System.out.printf("Analyzing %s for date range %s-%s...%n", csvFile, args[2], args[3]);
+		System.out.printf("Analyzing %s for date range %s to %s...%n", csvFile, startDate, endDate);
 		printResult(new Processor(new Config(csvFile, holidayFile, hoursPerDay, startDate, endDate)).process());
 	}
 
