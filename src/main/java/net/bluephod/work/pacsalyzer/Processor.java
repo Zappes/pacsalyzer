@@ -21,6 +21,8 @@ public class Processor {
 	}
 
 	public Result process() throws IOException, ParseException {
+		HolidayLookup holidayLookup = new HolidayLookup(config);
+
 		CsvMapper mapper = new CsvMapper();
 		mapper.enable(CsvParser.Feature.WRAP_AS_ARRAY);
 
@@ -38,12 +40,12 @@ public class Processor {
 		}
 
 		// now we iterate over the entire range of days specified by the start and end date. for every day
-		// that has no bookings and that's not on a week-end, we increment the number of vacation days.
-		// a production-ready version of this should also exclude bank holidays, but this is not in the
-		// scope of this PoC.
+		// that has no bookings and that's not a holiday or on a week-end, we increment the number of
+		// vacation days.
 
 		List<LocalDate> fullDays = new LinkedList<>();
 		List<LocalDate> halfDays = new LinkedList<>();
+		List<HolidayLookup.Holiday> holidays = new LinkedList<>();
 
 		// this one is only needed to make the iteration a little easier as there is no beforeOrEqual method
 		// on LocalDate
@@ -55,9 +57,16 @@ public class Processor {
 				continue;
 			}
 
+			if(holidayLookup.getHoliday(date).isPresent()) {
+				// if this day is a holiday, insert it into the list of ignored holidays and continue with the
+				// next day.
+				holidays.add(holidayLookup.getHoliday(date).get());
+				continue;
+			}
+
 			double totalBooked = bookings.computeIfAbsent(date, localDate -> Collections.emptyList())
 				.stream()
-				.mapToDouble(booking -> Double.valueOf(booking.getHours()))
+				.mapToDouble(Booking::getHours)
 				.sum();
 
 			if(totalBooked < 0.25) {
@@ -70,7 +79,7 @@ public class Processor {
 			}
 		}
 
-		return new Result(fullDays.size() + (halfDays.size() * 0.5) ,bookings.size(), fullDays, halfDays);
+		return new Result(fullDays.size() + (halfDays.size() * 0.5), bookings.size(), fullDays, halfDays, holidays);
 	}
 
 	@Getter

@@ -12,21 +12,29 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
 public class Pacsalyzer {
-	public static void main(String ... args) throws IOException, ParseException {
-		if(CollectionUtils.size(args) != 4) {
+	public static void main(String... args) throws IOException, ParseException {
+		if(CollectionUtils.size(args) != 5) {
 			usage(null);
 		}
 
-		Path csvFile = Paths.get(args[0]);
+		int arg = 0;
+
+		Path csvFile = Paths.get(args[arg++]);
 
 		if(!Files.exists(csvFile)) {
-			usage(String.format("File %s doesn't exist.", csvFile));
+			usage(String.format("Booking file %s doesn't exist.", csvFile));
+		}
+
+		Path holidayFile = Paths.get(args[arg++]);
+
+		if(!Files.exists(csvFile)) {
+			usage(String.format("Holiday file %s doesn't exist.", holidayFile));
 		}
 
 		int hoursPerDay = 0;
 
 		try {
-			hoursPerDay = Integer.parseInt(args[1]);
+			hoursPerDay = Integer.parseInt(args[arg++]);
 		}
 		finally {
 			if(hoursPerDay < 1 || hoursPerDay > 24) {
@@ -39,39 +47,44 @@ public class Pacsalyzer {
 		LocalDate startDate = null;
 		LocalDate endDate = null;
 		try {
-			startDate = LocalDate.parse(args[2], dateFormat);
-			endDate = LocalDate.parse(args[3], dateFormat);
+			startDate = LocalDate.parse(args[arg++], dateFormat);
+			endDate = LocalDate.parse(args[arg++], dateFormat);
 		}
 		finally {
-			if(startDate == null || endDate == null)
+			if(startDate == null || endDate == null) {
 				usage("Wrong date format for start or end date.");
+			}
 		}
 
 		System.out.printf("Analyzing %s for date range %s-%s...%n", csvFile, args[2], args[3]);
-		printResult(new Processor(new Config(csvFile, hoursPerDay, startDate, endDate)).process());
+		printResult(new Processor(new Config(csvFile, holidayFile, hoursPerDay, startDate, endDate)).process());
 	}
 
 	private static void printResult(final Result result) {
-		System.out.println("Days with bookings: " + result.getBookedDays());
-		System.out.println("Vacation days:      " + result.getVacationDays());
-		System.out.println("  thereof full:     " + result.getFullDays().size());
-		System.out.println("  thereof half:     " + result.getHalfDays().size());
+		System.out.printf("Days with bookings: %d%n", result.getBookedDays());
+		System.out.println();
+		System.out.printf("Vacation days:      %s%n", result.getVacationDays());
+		System.out.printf("  thereof full:     %d%n", result.getFullDays().size());
+		System.out.printf("  thereof half:     %d%n", result.getHalfDays().size());
+
 		if(!result.getFullDays().isEmpty()) {
-			System.out.println("List of full vacation days");
-			result.getFullDays().stream().forEach(date -> {
-				System.out.println("   " + date);
-			});
+			System.out.println("\nList of full vacation days");
+			result.getFullDays().forEach(date -> System.out.printf("   %s%n", date));
 		}
+
 		if(!result.getHalfDays().isEmpty()) {
-			System.out.println("List of half vacation days");
-			result.getHalfDays().stream().forEach(date -> {
-				System.out.println("   " + date);
-			});
+			System.out.println("\nList of half vacation days");
+			result.getHalfDays().forEach(date -> System.out.printf("   %s%n", date));
+		}
+
+		if(!result.getHolidays().isEmpty()) {
+			System.out.println("\nList of ignored holidays in date range");
+			result.getHolidays().forEach(holiday -> System.out.printf("   %s (%s)%n", holiday.getDate(), holiday.getName()));
 		}
 	}
 
 	private static void usage(String error) {
-		System.err.println("Usage: pacsalyzer <path to csv> <hours per day> <start date> <end date>");
+		System.err.println("Usage: pacsalyzer <path to bookings csv> <path to holidays csv> <hours per day> <start date> <end date>");
 
 		if(StringUtils.isNotBlank(error)) {
 			System.err.println("\n" + error);
