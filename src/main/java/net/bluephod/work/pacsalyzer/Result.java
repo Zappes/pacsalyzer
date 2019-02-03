@@ -9,18 +9,21 @@ import lombok.Getter;
 public class Result {
 	private final double vacationDays;
 	private final int bookedDays;
+	private final double bookedHours;
 	private final List<LocalDate> fullDays;
 	private final List<LocalDate> halfDays;
 	private final List<HolidayLookup.Holiday> holidays;
 
 	public Result(final double vacationDays,
 		final int bookedDays,
+		final double bookedHours,
 		final List<LocalDate> fullDays,
 		final List<LocalDate> halfDays,
 		List<HolidayLookup.Holiday> holidays) {
 
 		this.vacationDays = vacationDays;
 		this.bookedDays = bookedDays;
+		this.bookedHours = bookedHours;
 		this.fullDays = fullDays;
 		this.halfDays = halfDays;
 		this.holidays = holidays;

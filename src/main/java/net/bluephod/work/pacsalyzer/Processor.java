@@ -39,6 +39,11 @@ public class Processor {
 			bookings.computeIfAbsent(booking.date, date -> new LinkedList<>()).add(booking);
 		}
 
+		// farther below, an iteration over this structure is simplified by using computeIfAbsent for every
+		// day in the analysis range, so the information how many days had bookings gets harder to access
+		// at that point. to keep things simple, we remember how many days there actually were right here.
+		int numberOfBookedDays = bookings.size();
+
 		// now we iterate over the entire range of days specified by the start and end date. for every day
 		// that has no bookings and that's not a holiday or on a week-end, we increment the number of
 		// vacation days.
@@ -50,7 +55,19 @@ public class Processor {
 		// this one is only needed to make the iteration a little easier as there is no beforeOrEqual method
 		// on LocalDate
 		LocalDate firstDayAfter = config.getEndDate().plusDays(1);
+		double totalBookedOverall = 0;
+
 		for(LocalDate date = config.getStartDate(); date.isBefore(firstDayAfter); date = date.plusDays(1)) {
+
+			// it would be great if there was something like Map.getOrDefault(), but computeIfAbsent()
+			// will do. keep in mind that after this there will be an entry (albeit with an empty list)
+			// for every day including the ones without actual bookings.
+			double totalBookedToday = bookings.computeIfAbsent(date, localDate -> Collections.emptyList())
+				.stream()
+				.mapToDouble(Booking::getHours)
+				.sum();
+
+			totalBookedOverall += totalBookedToday;
 
 			if(date.getDayOfWeek() == DayOfWeek.SATURDAY || date.getDayOfWeek() == DayOfWeek.SUNDAY) {
 				// ignore the week-ends.
@@ -64,22 +81,18 @@ public class Processor {
 				continue;
 			}
 
-			double totalBooked = bookings.computeIfAbsent(date, localDate -> Collections.emptyList())
-				.stream()
-				.mapToDouble(Booking::getHours)
-				.sum();
-
-			if(totalBooked < 0.25) {
+			if(totalBookedToday < 0.25) {
 				// if less than a quarter of an hour was booked, this is a vacation day.
 				fullDays.add(date);
 			}
-			else if(totalBooked <= config.getHoursPerDay() / 2) {
+			else if(totalBookedToday <= config.getHoursPerDay() / 2) {
 				// if half a day or less was booked, we call it half a vacation day.
 				halfDays.add(date);
 			}
 		}
 
-		return new Result(fullDays.size() + (halfDays.size() * 0.5), bookings.size(), fullDays, halfDays, holidays);
+		return new Result(fullDays.size() + (halfDays.size() * 0.5), numberOfBookedDays, totalBookedOverall, fullDays, halfDays,
+			holidays);
 	}
 
 	@Getter

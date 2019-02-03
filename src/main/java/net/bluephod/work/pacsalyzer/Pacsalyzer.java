@@ -56,14 +56,16 @@ public class Pacsalyzer {
 			}
 		}
 
-		System.out.printf("Analyzing %s for date range %s to %s...%n", csvFile, startDate, endDate);
+		System.out.printf("Analyzing %s for date range %s to %s and %s hours/day...%n%n", csvFile, startDate, endDate, hoursPerDay);
 		printResult(new Processor(new Config(csvFile, holidayFile, hoursPerDay, startDate, endDate)).process());
 	}
 
 	private static void printResult(final Result result) {
 		System.out.printf("Days with bookings: %d%n", result.getBookedDays());
+		System.out.printf("Hours booked:       %.2f%n", result.getBookedHours());
+		System.out.printf("Average hours/day:  %.2f%n", result.getBookedHours() / result.getBookedDays());
 		System.out.println();
-		System.out.printf("Vacation days:      %s%n", result.getVacationDays());
+		System.out.printf("Vacation days:      %.1f%n", result.getVacationDays());
 		System.out.printf("  thereof full:     %d%n", result.getFullDays().size());
 		System.out.printf("  thereof half:     %d%n", result.getHalfDays().size());
 
